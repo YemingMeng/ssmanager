@@ -13,17 +13,6 @@ class user:
         self.current_bd=current_bd
         self.bd_lim=bd_lim
 
-def datasize(num):
-    num=int(num)
-    if num < 1024:
-        return '%.2f'%(num) +'B'
-    elif num < 1024**2:
-        return '%.2f'%(num*1.0/1024) +'KB'
-    elif num < 1024**3:
-        return '%.2f'%(num*1.0/1024**2) +'MB'
-    else:
-        return '%.2f'%(num*1.0/1024**3) +'GB'
-
 class userspace:
     def __init__(self):
         self.users=[]
@@ -44,7 +33,7 @@ class userspace:
         for i in self.users:
             if i.port==port:
                 del self.users[a]
-                a+=1
+            a+=1
         if a==len(self.users):
             print "Can't del port!"
     def writebd(self):
@@ -59,12 +48,41 @@ class userspace:
             for user in self.users:
                 if user.name in bd:
                     self.users[a].current_bd=bd[user.name]
-                    a+=1
+                a+=1
+    def addbd(self,bd):
+        global cli
+        a=0
+        for user in self.users:
+            if user.port in bd:
+                self.users[a].current_bd+=bd[user.port]
+                date=time.strftime('%Y-%m-%d',time.localtime(time.time()))
+                now=time.strftime('%H:%M:%S',time.localtime(time.time()))
+                text=now+'\t'+self.users[a].name+'\t'+datasize(self.users[a].current_bd)
+                print text
+                logfile=open('log/'+'log_'+date,'a')
+                logfile.write(text+'\n')
+                logfile.close()
+                if self.users[a].current_bd > self.users[a].bd_lim:
+                    cli.send(b'remove:{"server_port":'+self.users[a].port+b'}')
+                    cli.recv(1506)
+            a+=1
     def initbd(self):
         a=0
         for user in self.users:
             self.users[a].current_bd=0
             a+=1
+
+
+def datasize(num):
+    num=int(num)
+    if num < 1024:
+        return '%.2f'%(num) +'B'
+    elif num < 1024**2:
+        return '%.2f'%(num*1.0/1024) +'KB'
+    elif num < 1024**3:
+        return '%.2f'%(num*1.0/1024**2) +'MB'
+    else:
+        return '%.2f'%(num*1.0/1024**3) +'GB'
 
 def write_config(userspace):
     text={"port_password":{},
@@ -84,6 +102,7 @@ def run_server():
 
 def bd_cal():
     global users
+    global cli
     try:
         os.remove("/tmp/client.sock")
     except:
@@ -95,26 +114,12 @@ def bd_cal():
     cli.recv(1506)
     yesterday=time.strftime('%d',time.localtime(time.time()))
     while True:
-        date=time.strftime('%Y-%m-%d',time.localtime(time.time()))
         tmp=cli.recv(1506)
-        port,data=tmp[8:12],int(tmp[14:-1])
-        a=0
-        for user in users.users:
-            if user.port==port:
-                #add bandwidth
-                users.users[a].current_bd+=data
-                text=time.strftime('%H:%M:%S',time.localtime(time.time()))+'\t'+users.users[a].name+'\t'+datasize(users.users[a].current_bd)
-                print text
-                #ban port
-                if users.users[a].current_bd > users.users[a].bd_lim:
-                    cli.send(b'remove:{"server_port":'+port+b'}')
-                    cli.recv(1506)
-                #write log imformation
-                logfile=open('log/'+'log_'+date,'a')
-                logfile.write(text+'\n')
-                logfile.close()
-                users.writebd()
-            a+=1
+        if tmp[:4]=="stat":
+            tmp=eval(tmp[6:])
+            print tmp
+            users.addbd(tmp)
+            users.writebd()
         #clear bandwidth in new month
         if yesterday=='24' and time.strftime('%d',time.localtime(time.time()))=='25':
             os.remove('current_bd')
