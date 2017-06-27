@@ -1,0 +1,7 @@
+*.pyc
+*~
+*.swp
+log/
+current_bd
+ss_config.json
+user
