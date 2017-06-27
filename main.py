@@ -117,7 +117,6 @@ def bd_cal():
         tmp=cli.recv(1506)
         if tmp[:4]=="stat":
             tmp=eval(tmp[6:])
-            print tmp
             users.addbd(tmp)
             users.writebd()
         #clear bandwidth in new month
