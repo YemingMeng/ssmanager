@@ -16,6 +16,7 @@ class user:
 class userspace:
     def __init__(self):
         self.users=[]
+
     def loaduser(self):
         userfile=open("user")
         for line in userfile:
@@ -26,8 +27,10 @@ class userspace:
                 a=line.split('\t')
                 self.adduser(a[1],a[2],a[0],eval(a[3]))
         userfile.close()
+
     def adduser(self,port,passwd,name,bd_lim,current_bd=0):
         self.users.append(user(port,passwd,name,current_bd,bd_lim))
+
     def deluser(self,port):
         a=0
         for i in self.users:
@@ -36,11 +39,13 @@ class userspace:
             a+=1
         if a==len(self.users):
             print "Can't del port!"
+
     def writebd(self):
         bd={}
         for i in self.users:
             bd[i.name]=i.current_bd
         json.dump(bd,open("current_bd","w"))
+
     def loadbd(self):
         if os.path.exists('current_bd'):
             bd=json.load(open("current_bd","r"))
@@ -49,8 +54,8 @@ class userspace:
                 if user.name in bd:
                     self.users[a].current_bd=bd[user.name]
                 a+=1
-    def addbd(self,bd):
-        global cli
+
+    def addbd(self,bd,cli):
         a=0
         for user in self.users:
             if user.port in bd:
@@ -65,7 +70,9 @@ class userspace:
                 if self.users[a].current_bd > self.users[a].bd_lim:
                     cli.send(b'remove:{"server_port":'+self.users[a].port+b'}')
                     cli.recv(1506)
+                    se1f.deluser(self.user[a].port)
             a+=1
+
     def initbd(self):
         a=0
         for user in self.users:
@@ -85,7 +92,8 @@ def datasize(num):
         return '%.2f'%(num*1.0/1024**3) +'GB'
 
 def write_config(userspace):
-    text={"port_password":{},
+    text={"server":"::",
+            "port_password":{},
             "timeout":300,
             "method":"aes-256-cfb",
             "fast_open":True}
@@ -102,7 +110,6 @@ def run_server():
 
 def bd_cal():
     global users
-    global cli
     try:
         os.remove("/tmp/client.sock")
     except:
@@ -117,10 +124,10 @@ def bd_cal():
         tmp=cli.recv(1506)
         if tmp[:4]=="stat":
             tmp=eval(tmp[6:])
-            users.addbd(tmp)
+            users.addbd(tmp,cli)
             users.writebd()
         #clear bandwidth in new month
-        if yesterday=='24' and time.strftime('%d',time.localtime(time.time()))=='25':
+        if time.strftime('%d',time.localtime(time.time())) != yesterday:
             os.remove('current_bd')
             user.initbd()
         yesterday=time.strftime('%d',time.localtime(time.time()))
