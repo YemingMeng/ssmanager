@@ -129,7 +129,7 @@ def bd_cal():
         #clear bandwidth in new month
         if time.strftime('%d',time.localtime(time.time())) != yesterday:
             os.remove('current_bd')
-            user.initbd()
+            users.initbd()
         yesterday=time.strftime('%d',time.localtime(time.time()))
 
 def main():
