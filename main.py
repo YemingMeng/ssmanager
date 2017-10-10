@@ -95,6 +95,7 @@ def write_config(userspace):
     text={"server":"::",
             "port_password":{},
             "timeout":300,
+            "udp":True,
             "method":"aes-256-cfb",
             "fast_open":True}
     for i in userspace.users:
